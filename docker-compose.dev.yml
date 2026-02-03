@@ -42,9 +42,6 @@ services:
       - "8000:8000"
     volumes:
       - ./backend:/app
-      - ./premium_proxy_fetcher.py:/app/premium_proxy_fetcher.py
-      - ./public_proxy_fetcher.py:/app/public_proxy_fetcher.py
-      - ./basic_proxy_fetcher.py:/app/basic_proxy_fetcher.py
       - ./proxy_data:/app/proxy_data
       - ./logs:/app/logs
     depends_on:
@@ -82,9 +79,7 @@ services:
       - REDIS_URL=redis://redis:6379/0
     volumes:
       - ./backend:/app
-      - ./premium_proxy_fetcher.py:/app/premium_proxy_fetcher.py
-      - ./public_proxy_fetcher.py:/app/public_proxy_fetcher.py
-      - ./basic_proxy_fetcher.py:/app/basic_proxy_fetcher.py
+
       - ./proxy_data:/app/proxy_data
       - ./logs:/app/logs
     depends_on:
@@ -104,9 +99,7 @@ services:
       - REDIS_URL=redis://redis:6379/0
     volumes:
       - ./backend:/app
-      - ./premium_proxy_fetcher.py:/app/premium_proxy_fetcher.py
-      - ./public_proxy_fetcher.py:/app/public_proxy_fetcher.py
-      - ./basic_proxy_fetcher.py:/app/basic_proxy_fetcher.py
+
       - ./proxy_data:/app/proxy_data
       - ./logs:/app/logs
     depends_on:

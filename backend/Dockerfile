@@ -15,10 +15,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy backend code
 COPY backend/ .
 
-# Copy proxy fetcher scripts
-COPY premium_proxy_fetcher.py .
-COPY public_proxy_fetcher.py .
-COPY basic_proxy_fetcher.py .
+
 
 # Create directories
 RUN mkdir -p /app/proxy_data /app/logs /app/static /app/media

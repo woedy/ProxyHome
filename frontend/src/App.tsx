@@ -1,5 +1,5 @@
-import React from 'react'
-import { Routes, Route } from 'react-router-dom'
+import React, { useEffect } from 'react'
+import { Routes, Route, useNavigate } from 'react-router-dom'
 import { AuthProvider } from './hooks/useAuth'
 import Layout from './components/Layout'
 import ProtectedRoute from './components/ProtectedRoute'
@@ -12,6 +12,14 @@ import FetchJobs from './pages/FetchJobs'
 import Settings from './pages/Settings'
 
 function App() {
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    const handleLogout = () => navigate('/login')
+    window.addEventListener('auth:logout', handleLogout)
+    return () => window.removeEventListener('auth:logout', handleLogout)
+  }, [navigate])
+
   return (
     <AuthProvider>
       <Routes>

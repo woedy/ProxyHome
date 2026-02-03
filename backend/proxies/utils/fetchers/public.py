@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Public Proxy Fetcher - Tier 2
 Fetches proxies from established public sources and GitHub repositories
@@ -497,59 +496,3 @@ class PublicProxyFetcher:
             json.dump(output, f, indent=2)
         
         print(f"Saved {len(proxies)} public proxies to {filename}")
-
-
-def main():
-    parser = argparse.ArgumentParser(description='Fetch public proxies (Tier 2)')
-    parser.add_argument('--timeout', type=int, default=10, help='Timeout for requests')
-    parser.add_argument('--workers', type=int, default=30, help='Concurrent workers for validation')
-    parser.add_argument('--output', type=str, default='public_proxies.json', help='Output filename')
-    parser.add_argument('--no-validate', action='store_true', help='Skip validation')
-    
-    args = parser.parse_args()
-    
-    fetcher = PublicProxyFetcher(timeout=args.timeout, max_workers=args.workers)
-    
-    # Fetch public proxies
-    proxies = fetcher.fetch_all_public_proxies()
-    
-    if not proxies:
-        print("No proxies found!")
-        return
-    
-    if not args.no_validate:
-        proxies = fetcher.validate_proxies(proxies)
-    
-    if proxies:
-        fetcher.save_proxies(proxies, args.output)
-        
-        # Show summary
-        print(f"\n=== Public Proxy Summary ===")
-        print(f"Total working proxies: {len(proxies)}")
-        
-        by_source = {}
-        by_type = {}
-        for proxy in proxies:
-            source = proxy['source']
-            proxy_type = proxy['type']
-            by_source[source] = by_source.get(source, 0) + 1
-            by_type[proxy_type] = by_type.get(proxy_type, 0) + 1
-        
-        print("\nBy source:")
-        for source, count in sorted(by_source.items()):
-            print(f"  {source}: {count}")
-        
-        print("\nBy type:")
-        for ptype, count in sorted(by_type.items()):
-            print(f"  {ptype}: {count}")
-        
-        # Show average response time
-        if proxies and 'response_time' in proxies[0]:
-            avg_time = sum(p.get('response_time', 0) for p in proxies) / len(proxies)
-            print(f"\nAverage response time: {avg_time:.2f}s")
-    else:
-        print("No working public proxies found!")
-
-
-if __name__ == "__main__":
-    main()

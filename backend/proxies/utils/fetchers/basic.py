@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Basic Proxy Fetcher - Tier 3
 Fetches proxies from basic sources and fallback lists
@@ -458,63 +457,3 @@ class BasicProxyFetcher:
             json.dump(output, f, indent=2)
         
         print(f"Saved {len(proxies)} basic proxies to {filename}")
-
-
-def main():
-    parser = argparse.ArgumentParser(description='Fetch basic proxies (Tier 3)')
-    parser.add_argument('--timeout', type=int, default=8, help='Timeout for requests')
-    parser.add_argument('--workers', type=int, default=40, help='Concurrent workers for validation')
-    parser.add_argument('--output', type=str, default='basic_proxies.json', help='Output filename')
-    parser.add_argument('--no-validate', action='store_true', help='Skip validation')
-    
-    args = parser.parse_args()
-    
-    fetcher = BasicProxyFetcher(timeout=args.timeout, max_workers=args.workers)
-    
-    # Fetch basic proxies
-    proxies = fetcher.fetch_all_basic_proxies()
-    
-    if not proxies:
-        print("No proxies found!")
-        return
-    
-    if not args.no_validate:
-        proxies = fetcher.validate_proxies(proxies)
-    
-    if proxies:
-        fetcher.save_proxies(proxies, args.output)
-        
-        # Show summary
-        print(f"\n=== Basic Proxy Summary ===")
-        print(f"Total working proxies: {len(proxies)}")
-        
-        by_source = {}
-        by_type = {}
-        for proxy in proxies:
-            source = proxy['source']
-            proxy_type = proxy['type']
-            by_source[source] = by_source.get(source, 0) + 1
-            by_type[proxy_type] = by_type.get(proxy_type, 0) + 1
-        
-        print("\nBy source:")
-        for source, count in sorted(by_source.items()):
-            print(f"  {source}: {count}")
-        
-        print("\nBy type:")
-        for ptype, count in sorted(by_type.items()):
-            print(f"  {ptype}: {count}")
-        
-        # Show success rate
-        if proxies:
-            print(f"\nNote: Basic tier typically has 2-10% success rate")
-            print("Consider using premium or public tier for better reliability")
-    else:
-        print("No working basic proxies found!")
-        print("This is normal for basic tier sources. Try:")
-        print("1. Running premium_proxy_fetcher.py for better results")
-        print("2. Running public_proxy_fetcher.py for medium quality")
-        print("3. Increasing timeout with --timeout 15")
-
-
-if __name__ == "__main__":
-    main()

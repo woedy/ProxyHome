@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Premium Proxy Fetcher - Tier 1
 Fetches high-quality proxies from premium services with free tiers
@@ -8,8 +7,8 @@ import requests
 import json
 import time
 import os
-from typing import List, Dict, Optional
 import argparse
+from typing import List, Dict, Optional
 from urllib.parse import urljoin
 import base64
 import concurrent.futures
@@ -444,85 +443,3 @@ class PremiumProxyFetcher:
             json.dump(output, f, indent=2)
         
         print(f"Saved {len(proxies)} premium proxies to {filename}")
-
-
-def main():
-    parser = argparse.ArgumentParser(description='Fetch premium proxies (Tier 1)')
-    parser.add_argument('--timeout', type=int, default=15, help='Timeout for requests')
-    parser.add_argument('--output', type=str, default='premium_proxies.json', help='Output filename')
-    parser.add_argument('--no-validate', action='store_true', help='Skip validation')
-    parser.add_argument('--create-config', action='store_true', help='Create credentials template')
-    
-    args = parser.parse_args()
-    
-    fetcher = PremiumProxyFetcher(timeout=args.timeout)
-    
-    if args.create_config:
-        fetcher.create_credentials_template()
-        return
-    
-    # Fetch premium proxies
-    proxies = fetcher.fetch_all_premium_proxies()
-    
-    if not proxies:
-        print("\nNo proxies fetched. Make sure to:")
-        print("1. Run with --create-config to create credentials template")
-        print("2. Fill in your API credentials in proxy_credentials.json")
-        print("3. Run again to fetch proxies")
-        return
-    
-    if not args.no_validate:
-        proxies = fetcher.validate_all_proxies(proxies)
-    
-    if proxies:
-        fetcher.save_proxies(proxies, args.output)
-        
-        # Show summary
-        print(f"\n=== Premium Proxy Summary ===")
-        print(f"Total working proxies: {len(proxies)}")
-        
-        by_source = {}
-        for proxy in proxies:
-            source = proxy['source']
-            by_source[source] = by_source.get(source, 0) + 1
-        
-        for source, count in by_source.items():
-            print(f"{source}: {count} proxies")
-        
-        # Show usage example
-        if proxies:
-            sample = proxies[0]
-            print(f"\nSample usage:")
-            if sample.get('premium'):
-                print(f"""
-import requests
-
-proxy = "http://{sample['ip']}:{sample['port']}"
-auth = ("{sample['username']}", "{sample['password']}")
-proxies = {{'http': proxy, 'https': proxy}}
-
-response = requests.get('http://httpbin.org/ip', proxies=proxies, auth=auth)
-print(response.json())
-
-# Location: {sample.get('city', 'Unknown')}, {sample.get('country', 'Unknown')}
-# Type: {sample['type'].upper()}
-""")
-            else:
-                print(f"""
-import requests
-
-proxy = "{sample['type']}://{sample['ip']}:{sample['port']}"
-proxies = {{'http': proxy, 'https': proxy}}
-
-response = requests.get('http://httpbin.org/ip', proxies=proxies)
-print(response.json())
-
-# Location: {sample.get('city', 'Unknown')}, {sample.get('country', 'Unknown')}
-# Type: {sample['type'].upper()}
-""")
-    else:
-        print("No working premium proxies found!")
-
-
-if __name__ == "__main__":
-    main()

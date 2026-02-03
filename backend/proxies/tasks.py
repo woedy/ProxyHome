@@ -7,13 +7,10 @@ import json
 import subprocess
 import logging
 
-# Add the parent directory to Python path to import our proxy fetchers
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-
 from .models import Proxy, ProxySource, FetchJob, ProxyCredentials, ProxyTest
-from premium_proxy_fetcher import PremiumProxyFetcher
-from public_proxy_fetcher import PublicProxyFetcher
-from basic_proxy_fetcher import BasicProxyFetcher
+from proxies.utils.fetchers.premium import PremiumProxyFetcher
+from proxies.utils.fetchers.public import PublicProxyFetcher
+from proxies.utils.fetchers.basic import BasicProxyFetcher
 
 logger = logging.getLogger(__name__)
 
