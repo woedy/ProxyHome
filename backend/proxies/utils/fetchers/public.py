@@ -70,38 +70,45 @@ class PublicProxyFetcher:
         return location_info
         
     def fetch_from_spys_one(self) -> List[Dict]:
-        """Fetch proxies from Spys.one"""
+        """Fetch proxies from Spys.one with protocol-specific pages"""
         proxies = []
-        try:
-            url = "https://spys.one/en/free-proxy-list/"
-            response = self.session.get(url, timeout=self.timeout)
-            
-            # Extract proxy data using regex
-            pattern = r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}):(\d+)'
-            matches = re.findall(pattern, response.text)
-            
-            for ip, port in matches[:50]:  # Limit to 50
-                # Detect location for each proxy
-                location_info = self.detect_proxy_location(ip)
+        # Spys.one protocol-specific pages are more reliable for detection
+        pages = [
+            ("http", "https://spys.one/en/free-proxy-list/"),
+            ("socks", "https://spys.one/en/socks-proxy-list/")
+        ]
+        
+        for p_type, url in pages:
+            try:
+                response = self.session.get(url, timeout=self.timeout)
+                # Extract proxy data using regex
+                pattern = r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}):(\d+)'
+                matches = re.findall(pattern, response.text)
                 
-                # Spys.one has various proxy types
-                for proxy_type in ['http', 'socks4', 'socks5']:
-                    proxies.append({
-                        'ip': ip,
-                        'port': int(port),
-                        'type': proxy_type,
-                        'source': 'spys.one',
-                        'tier': 2,
-                        'country': location_info['country'],
-                        'country_code': location_info['country_code'],
-                        'region': location_info['region'],
-                        'city': location_info['city'],
-                        'timezone': location_info['timezone']
-                    })
+                for ip, port in matches[:50]:
+                    location_info = self.detect_proxy_location(ip)
+                    
+                    # If we're on the socks page, it could be socks4 or socks5
+                    # spys usually indicates this in the row, but regex is faster
+                    # for now we'll add both or try to detect if we were more surgical
+                    types_to_add = [p_type] if p_type == "http" else ["socks4", "socks5"]
+                    
+                    for final_type in types_to_add:
+                        proxies.append({
+                            'ip': ip,
+                            'port': int(port),
+                            'type': final_type,
+                            'source': 'spys.one',
+                            'tier': 2,
+                            'country': location_info['country'],
+                            'country_code': location_info['country_code'],
+                            'region': location_info['region'],
+                            'city': location_info['city'],
+                            'timezone': location_info['timezone']
+                        })
+            except Exception as e:
+                print(f"Error fetching from Spys.one ({p_type}): {e}")
                 
-        except Exception as e:
-            print(f"Error fetching from Spys.one: {e}")
-            
         return proxies
     
     def fetch_from_hidemy_name(self) -> List[Dict]:
@@ -265,6 +272,25 @@ class PublicProxyFetcher:
                     'https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/socks4.txt',
                     'https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/socks5.txt'
                 ]
+            },
+            {
+                'name': 'TheSpeedX/SOCKS-List',
+                'urls': [
+                    'https://raw.githubusercontent.com/TheSpeedX/SOCKS-List/master/socks4.txt',
+                    'https://raw.githubusercontent.com/TheSpeedX/SOCKS-List/master/socks5.txt'
+                ]
+            },
+            {
+                'name': 'hookzof/socks5_list',
+                'urls': [
+                    'https://raw.githubusercontent.com/hookzof/socks5_list/master/proxy.txt'
+                ]
+            },
+            {
+                'name': 'gfpcom/free-proxy-list',
+                'urls': [
+                    'https://raw.githubusercontent.com/gfpcom/free-proxy-list/main/proxies.txt'
+                ]
             }
         ]
         
@@ -316,36 +342,91 @@ class PublicProxyFetcher:
         return proxies
     
     def fetch_from_free_proxy_list_net(self) -> List[Dict]:
-        """Fetch from free-proxy-list.net"""
+        """Fetch from free-proxy-list.net and socks-proxy.net"""
+        proxies = []
+        targets = [
+            ("http", "https://free-proxy-list.net/"),
+            ("socks4", "https://www.socks-proxy.net/"),
+            ("socks5", "https://www.socks-proxy.net/") # They usually list both on this page
+        ]
+        
+        for p_type, url in targets:
+            try:
+                response = self.session.get(url, timeout=self.timeout)
+                # Parse the table data
+                pattern = r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})</td><td>(\d+)</td>'
+                matches = re.findall(pattern, response.text)
+                
+                for ip, port in matches[:40]:
+                    location_info = self.detect_proxy_location(ip)
+                    
+                    proxies.append({
+                        'ip': ip,
+                        'port': int(port),
+                        'type': p_type,
+                        'source': urlparse(url).netloc,
+                        'tier': 2,
+                        'country': location_info['country'],
+                        'country_code': location_info['country_code'],
+                        'region': location_info['region'],
+                        'city': location_info['city'],
+                        'timezone': location_info['timezone']
+                    })
+            except Exception as e:
+                print(f"Error fetching from {url}: {e}")
+                
+        return proxies
+
+    def fetch_from_pubproxy(self) -> List[Dict]:
+        """Fetch from PubProxy API"""
         proxies = []
         try:
-            url = "https://free-proxy-list.net/"
+            # Fetch HTTP, SOCKS4, SOCKS5
+            for p_type in ['http', 'socks4', 'socks5']:
+                url = f"http://pubproxy.com/api/proxy?limit=20&format=json&type={p_type}"
+                response = self.session.get(url, timeout=self.timeout)
+                if response.status_code == 200:
+                    data = response.json()
+                    for item in data.get('data', []):
+                        ip = item['ip']
+                        port = item['port']
+                        location_info = self.detect_proxy_location(ip)
+                        
+                        proxies.append({
+                            'ip': ip,
+                            'port': int(port),
+                            'type': p_type,
+                            'source': 'pubproxy.com',
+                            'tier': 2,
+                            'country': location_info['country'],
+                            'country_code': location_info['country_code']
+                        })
+        except Exception as e:
+            print(f"Error fetching from PubProxy: {e}")
+        return proxies
+
+    def fetch_from_iproyal(self) -> List[Dict]:
+        """Fetch from IPRoyal free proxy list"""
+        proxies = []
+        try:
+            url = "https://iproyal.com/free-proxy-list/"
             response = self.session.get(url, timeout=self.timeout)
-            
-            # Parse the table data
-            pattern = r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})</td><td>(\d+)</td>'
+            # Regex for IP:Port in their table structure
+            pattern = r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})</div>\s*<div[^>]*>\s*(\d+)</div>'
             matches = re.findall(pattern, response.text)
             
-            for ip, port in matches[:40]:  # Limit to 40
-                # Detect location for each proxy
+            for ip, port in matches[:30]:
                 location_info = self.detect_proxy_location(ip)
-                
                 proxies.append({
                     'ip': ip,
                     'port': int(port),
-                    'type': 'http',
-                    'source': 'free-proxy-list.net',
+                    'type': 'http', # default to http for iproyal free as they are mixed but often http
+                    'source': 'iproyal.com',
                     'tier': 2,
-                    'country': location_info['country'],
-                    'country_code': location_info['country_code'],
-                    'region': location_info['region'],
-                    'city': location_info['city'],
-                    'timezone': location_info['timezone']
+                    'country': location_info['country']
                 })
-                
         except Exception as e:
-            print(f"Error fetching from free-proxy-list.net: {e}")
-            
+            print(f"Error fetching from IPRoyal: {e}")
         return proxies
     
     def fetch_from_proxy_nova(self) -> List[Dict]:
@@ -431,6 +512,8 @@ class PublicProxyFetcher:
             ("ProxyLists.org", self.fetch_from_proxylists_org),
             ("Free-Proxy-List.net", self.fetch_from_free_proxy_list_net),
             ("ProxyNova", self.fetch_from_proxy_nova),
+            ("PubProxy", self.fetch_from_pubproxy),
+            ("IPRoyal", self.fetch_from_iproyal),
             ("GitHub Repositories", self.fetch_github_repositories)
         ]
         

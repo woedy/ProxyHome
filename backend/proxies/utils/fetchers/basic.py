@@ -302,19 +302,19 @@ class BasicProxyFetcher:
                 if response.status_code == 200:
                     lines = response.text.strip().split('\n')
                     
-                    # Determine proxy type from URL
-                    if 'socks4' in url:
+                    # Determine proxy type from URL or content
+                    if 'protocol=socks4' in url:
                         proxy_type = 'socks4'
-                    elif 'socks5' in url:
+                    elif 'protocol=socks5' in url:
                         proxy_type = 'socks5'
                     else:
                         proxy_type = 'http'
                     
-                    for line in lines[:20]:  # Limit per source
+                    for line in lines[:20]:
                         if ':' in line and len(line.split(':')) == 2:
                             ip, port = line.strip().split(':')
                             if self._is_valid_ip(ip) and port.isdigit():
-                                # Basic location detection (faster for basic tier)
+                                # Basic location detection
                                 location_info = self.detect_proxy_location(ip)
                                 
                                 proxies.append({
