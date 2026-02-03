@@ -43,7 +43,7 @@ services:
     volumes:
       - static_volume:/app/static
       - media_volume:/app/media
-      - ./logs:/app/logs
+      # - ./logs:/app/logs  <-- Commented out for Coolify, use internal logging or simple container logs
     depends_on:
       db:
         condition: service_healthy
@@ -56,7 +56,9 @@ services:
       retries: 3
     restart: unless-stopped
 
-  # Frontend (Nginx)
+  # Frontend (Nginx + React)
+  # This service builds the react app and serves it with Nginx in a single container.
+  # It replaces the separate 'nginx' service.
   frontend:
     build:
       context: .
@@ -68,7 +70,6 @@ services:
       - media_volume:/app/media
     depends_on:
       - backend
-    # No ports mapped to host - Coolify handles the exposed port 80
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost/"]
       interval: 30s
@@ -87,8 +88,6 @@ services:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-proxyplatform}
       - REDIS_URL=redis://redis:6379/0
       - SECRET_KEY=${SECRET_KEY}
-    volumes:
-      - ./logs:/app/logs
     depends_on:
       db:
         condition: service_healthy
@@ -107,8 +106,6 @@ services:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-proxyplatform}
       - REDIS_URL=redis://redis:6379/0
       - SECRET_KEY=${SECRET_KEY}
-    volumes:
-      - ./logs:/app/logs
     depends_on:
       db:
         condition: service_healthy
